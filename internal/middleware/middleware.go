@@ -2,9 +2,7 @@ package middleware
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt"
@@ -40,9 +38,6 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		r.Header.Set("UserID", fmt.Sprintf("%v", claims["id"]))
 		r.Header.Set("UserRole", fmt.Sprintf("%v", claims["role"]))
-
-		log.SetOutput(os.Stdout)
-		log.Println("auth passed")
 		next.ServeHTTP(w, r)
 	}
 }
