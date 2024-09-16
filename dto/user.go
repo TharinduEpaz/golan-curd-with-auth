@@ -8,7 +8,7 @@ type UserRequest struct {
 type UserCreateRequest struct {
 	Email    string `json:"email" validate:"email,required"`
 	Password string `json:"password" validate:"required"`
-	Role     string `json:"role" validate:"required"`
+	Role     string `json:"role"`
 }
 
 type UserUpdateRequest struct {
