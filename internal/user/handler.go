@@ -28,7 +28,7 @@ var validate = validator.New()
 func HandleUser(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		middleware.AuthMiddleware(getAllUsers)(w, r)
+		middleware.AuthMiddleware(getUser)(w, r)
 	case http.MethodPost:
 		middleware.AuthMiddleware(middleware.AdminOnlyMiddleware(createAdminUser))(w, r)
 	case http.MethodPut:
@@ -104,7 +104,7 @@ func createAdminUser(w http.ResponseWriter, r *http.Request) {
 
 	result = database.DB.Create(&newAdminUser)
 	if result.Error != nil {
-		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
