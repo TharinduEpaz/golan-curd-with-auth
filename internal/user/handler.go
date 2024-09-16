@@ -206,8 +206,15 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if existingUser.Role == "admin" {
-		http.Error(w, "Cannot delete admin user", http.StatusForbidden)
+	// Convert UserID from header to uint
+	loggedInUserID, err := strconv.ParseUint(r.Header.Get("UserID"), 10, 32)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusBadRequest)
+		return
+	}
+
+	if existingUser.ID == uint(loggedInUserID) {
+		http.Error(w, "You cannot delete yourself !", http.StatusForbidden)
 		return
 	}
 
@@ -236,7 +243,7 @@ func getAllUsers(w http.ResponseWriter, r *http.Request) {
 	// Fetch users with pagination
 	var users []models.User
 	var totalUsers int64
-	
+
 	database.DB.Model(&models.User{}).Count(&totalUsers)
 	result := database.DB.Offset(offset).Limit(pageSize).Find(&users)
 
@@ -260,19 +267,19 @@ func getAllUsers(w http.ResponseWriter, r *http.Request) {
 	hasPrevPage := page > 1
 
 	response := struct {
-		Users        []dto.UserResponse `json:"users"`
-		TotalUsers   int64              `json:"totalUsers"`
-		CurrentPage  int                `json:"currentPage"`
-		TotalPages   int                `json:"totalPages"`
-		HasNextPage  bool               `json:"hasNextPage"`
-		HasPrevPage  bool               `json:"hasPrevPage"`
+		Users       []dto.UserResponse `json:"users"`
+		TotalUsers  int64              `json:"totalUsers"`
+		CurrentPage int                `json:"currentPage"`
+		TotalPages  int                `json:"totalPages"`
+		HasNextPage bool               `json:"hasNextPage"`
+		HasPrevPage bool               `json:"hasPrevPage"`
 	}{
-		Users:        userResponses,
-		TotalUsers:   totalUsers,
-		CurrentPage:  page,
-		TotalPages:   totalPages,
-		HasNextPage:  hasNextPage,
-		HasPrevPage:  hasPrevPage,
+		Users:       userResponses,
+		TotalUsers:  totalUsers,
+		CurrentPage: page,
+		TotalPages:  totalPages,
+		HasNextPage: hasNextPage,
+		HasPrevPage: hasPrevPage,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
