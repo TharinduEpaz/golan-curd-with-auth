@@ -4,6 +4,7 @@ import (
 	"assessment/dto"
 	"assessment/internal/database"
 	"assessment/models"
+	"assessment/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -30,9 +31,14 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user models.User
-	result := database.DB.Where("email = ? AND password = ?", loginUser.Email, loginUser.Password).First(&user)
+	result := database.DB.Where("email = ?", loginUser.Email).First(&user)
 	if result.Error != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		http.Error(w, "Invalid email", http.StatusUnauthorized)
+		return
+	}
+
+	if !utils.ComparePasswords(user.Password, []byte(loginUser.Password)) {
+		http.Error(w, "Invalid password", http.StatusUnauthorized)
 		return
 	}
 
@@ -52,13 +58,14 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
 }
 
-// todo : implement user email check
+// todo : add doc comments
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	//request mapping
 	var UserRequest dto.UserRequest
 	err := json.NewDecoder(r.Body).Decode(&UserRequest)
 	if err != nil {
@@ -73,25 +80,33 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user models.User
-	res := database.DB.Where("email = ?", UserRequest.Email).First(&user)
-	if res != nil {
+	var existingUser models.User
+	res := database.DB.Where("email = ?", UserRequest.Email).First(&existingUser)
+	if res.Error == nil {
 		http.Error(w, "Email already exists", http.StatusBadRequest)
 		return
 	}
 
-	User := models.User{
-		Email:    UserRequest.Email,
-		Password: UserRequest.Password,
-		Role:     UserRequest.Role,
+	// password hashing
+	hashedPassword, err := utils.HashPassword(UserRequest.Password)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
 	}
 
-	result := database.DB.Create(&User)
+	// persistance
+	newUser := models.User{
+		Email:    UserRequest.Email,
+		Password: hashedPassword,
+		Role:     "user", // todo : use defined const enums for this
+	}
+
+	result := database.DB.Create(&newUser)
 	if result.Error != nil {
 		http.Error(w, result.Error.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(User) //case
+	json.NewEncoder(w).Encode(newUser) //case
 }

@@ -3,7 +3,18 @@ package dto
 type UserRequest struct {
 	Email    string `json:"email" validate:"email,required"`
 	Password string `json:"password" validate:"required"`
-	Role string `json:"role" validate:"required"`
+}
+
+type UserCreateRequest struct {
+	Email    string `json:"email" validate:"email,required"`
+	Password string `json:"password" validate:"required"`
+	Role     string `json:"role" validate:"required"`
+}
+
+type UserUpdateRequest struct {
+	Email    string `json:"email" validate:"email"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
 }
 
 type UserResponse struct {
