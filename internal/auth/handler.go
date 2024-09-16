@@ -53,7 +53,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expirationTime := time.Now().Add(time.Minute * 1)
+	expirationTime := time.Now().Add(time.Minute * 10)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":    user.ID,
@@ -126,6 +126,12 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	response := dto.UserResponse{
+		ID:    newUser.ID,
+		Email: newUser.Email,
+		Role:  newUser.Role,
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newUser) //case
+	json.NewEncoder(w).Encode(response)
 }

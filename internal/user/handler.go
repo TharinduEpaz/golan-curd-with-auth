@@ -15,6 +15,7 @@ import (
 	"assessment/utils"
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"net/http"
 	"strings"
@@ -27,7 +28,7 @@ var validate = validator.New()
 func HandleUser(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		middleware.AuthMiddleware(getUser)(w, r)
+		middleware.AuthMiddleware(getAllUsers)(w, r)
 	case http.MethodPost:
 		middleware.AuthMiddleware(middleware.AdminOnlyMiddleware(createAdminUser))(w, r)
 	case http.MethodPut:
@@ -217,4 +218,66 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func getAllUsers(w http.ResponseWriter, r *http.Request) {
+	// Parse pagination parameters
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+	pageSize, err := strconv.Atoi(r.URL.Query().Get("pageSize"))
+	if err != nil || pageSize < 1 {
+		pageSize = 10
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Fetch users with pagination
+	var users []models.User
+	var totalUsers int64
+	
+	database.DB.Model(&models.User{}).Count(&totalUsers)
+	result := database.DB.Offset(offset).Limit(pageSize).Find(&users)
+
+	if result.Error != nil {
+		http.Error(w, "Error fetching users", http.StatusInternalServerError)
+		return
+	}
+
+	var userResponses []dto.UserResponse
+	for _, user := range users {
+		userResponses = append(userResponses, dto.UserResponse{
+			ID:    user.ID,
+			Email: user.Email,
+			Role:  user.Role,
+		})
+	}
+
+	// Prepare pagination metadata
+	totalPages := (int(totalUsers) + pageSize - 1) / pageSize
+	hasNextPage := page < totalPages
+	hasPrevPage := page > 1
+
+	response := struct {
+		Users        []dto.UserResponse `json:"users"`
+		TotalUsers   int64              `json:"totalUsers"`
+		CurrentPage  int                `json:"currentPage"`
+		TotalPages   int                `json:"totalPages"`
+		HasNextPage  bool               `json:"hasNextPage"`
+		HasPrevPage  bool               `json:"hasPrevPage"`
+	}{
+		Users:        userResponses,
+		TotalUsers:   totalUsers,
+		CurrentPage:  page,
+		TotalPages:   totalPages,
+		HasNextPage:  hasNextPage,
+		HasPrevPage:  hasPrevPage,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
