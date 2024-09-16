@@ -1,3 +1,10 @@
+/*
+Package user provides HTTP handlers for user-related operations in the assessment application.
+
+It includes functions for creating, retrieving, updating, and deleting user records in the database.
+The package implements role-based access control, with certain operations restricted to admin users only.
+It also handles request validation, password hashing, and JSON response formatting.
+*/
 package user
 
 import (
@@ -56,7 +63,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// todo : generate random password and email it to the email
+// TODO : generate random password and email it to the email
 func createAdminUser(w http.ResponseWriter, r *http.Request) {
 	var adminUserRequest dto.UserCreateRequest
 	err := json.NewDecoder(r.Body).Decode(&adminUserRequest)

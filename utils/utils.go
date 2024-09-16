@@ -1,3 +1,12 @@
+/*
+Package utils provides utility functions.
+
+It includes functions for password hashing and comparison using the bcrypt algorithm.
+These utilities are crucial for secure user authentication and password management
+in the application.
+
+This package relies on the golang.org/x/crypto/bcrypt package for cryptographic operations.
+*/
 package utils
 
 import (

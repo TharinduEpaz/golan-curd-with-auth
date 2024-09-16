@@ -1,18 +1,36 @@
+/*
+Package middleware provides HTTP middleware functions for the assessment application.
+
+It includes middleware for authentication using JWT tokens and role-based access control.
+These middleware functions can be used to protect routes and ensure that only authorized
+users can access certain parts of the application.
+
+This package is designed to work with the net/http package and integrates with the
+authentication system used in the application.
+*/
 package middleware
 
 import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/golang-jwt/jwt"
 )
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tokenString := r.Header.Get("Authorization")
-		tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+		cookie, err := r.Cookie("token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		tokenString := cookie.Value
 
 		if tokenString == "" {
 			http.Error(w, "Missing authorization token", http.StatusUnauthorized)

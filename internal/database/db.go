@@ -1,3 +1,11 @@
+/*
+Package database provides database connection and initialization functionality.
+
+It uses GORM as an ORM (Object-Relational Mapping) tool to interact with a MySQL database.
+The package handles the initial database connection, configuration, and schema migration.
+
+*/
+
 package database
 
 import (

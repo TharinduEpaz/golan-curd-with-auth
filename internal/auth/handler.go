@@ -1,3 +1,13 @@
+/*
+Package auth provides authentication-related functionality.
+
+It includes handlers for user login and registration, implementing JWT-based authentication.
+The package manages user credentials, performs password hashing and comparison, and generates
+JWT tokens for authenticated sessions.
+
+This package integrates with other parts of the application, such as the database package
+for user persistence and the utils package for password handling.
+*/
 package auth
 
 import (
@@ -24,30 +34,32 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var loginUser dto.UserRequest
-	err := json.NewDecoder(r.Body).Decode(&loginUser)
+	var LoginRequest dto.UserRequest
+	err := json.NewDecoder(r.Body).Decode(&LoginRequest)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	var user models.User
-	result := database.DB.Where("email = ?", loginUser.Email).First(&user)
+	result := database.DB.Where("email = ?", LoginRequest.Email).First(&user)
 	if result.Error != nil {
 		http.Error(w, "Invalid email", http.StatusUnauthorized)
 		return
 	}
 
-	if !utils.ComparePasswords(user.Password, []byte(loginUser.Password)) {
+	if !utils.ComparePasswords(user.Password, []byte(LoginRequest.Password)) {
 		http.Error(w, "Invalid password", http.StatusUnauthorized)
 		return
 	}
+
+	expirationTime := time.Now().Add(time.Minute * 1)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":    user.ID,
 		"email": user.Email,
 		"role":  user.Role,
-		"exp":   time.Now().Add(time.Hour * 24).Unix(),
+		"exp":   expirationTime.Unix(),
 	})
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
@@ -56,10 +68,16 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
+	http.SetCookie(w,
+		&http.Cookie{
+			Name:     "token",
+			Value:    tokenString,
+			Expires:  expirationTime,
+			HttpOnly: true,
+			Path:     "/",
+		})
 }
 
-// todo : add doc comments
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
