@@ -44,8 +44,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimPrefix(r.URL.Path, "/api/v1/user/")
 
 	var user models.User
-	result := database.DB.First(&user, id)
-
+	result := database.DB.Where("id = ?", id).First(&user)
 	if result.Error != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
